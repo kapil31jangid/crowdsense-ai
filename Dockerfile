@@ -22,10 +22,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend source code
 COPY backend/*.py ./
-# Copy any other necessary backend files (e.g., service account)
-COPY backend/service-account.json ./ 
-# Copy .env if needed (though secrets should be handled by Cloud Run)
-COPY backend/.env ./ 
 
 # Create static directory and copy frontend build from Stage 1
 RUN mkdir -p static

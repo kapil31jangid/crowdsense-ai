@@ -102,7 +102,7 @@ async def get_metrics(background_tasks: BackgroundTasks):
         
         for zone in zones:
             data = zone.to_dict()
-            density = data.get("current_density", 0)
+            density = data.get("current_density", data.get("density", 0))
             total_density += density
             zone_count += 1
             if density > 0.8:

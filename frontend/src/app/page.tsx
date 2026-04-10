@@ -45,9 +45,18 @@ export default function Dashboard() {
       let critical = 0;
 
       snapshot.forEach((doc) => {
-        const data = doc.data() as Omit<Zone, 'id'>;
-        zonesData.push({ id: doc.id, ...data });
-        totalDensity += data.current_density;
+        const data = doc.data() as Record<string, any>;
+        const current_density = data.current_density ?? data.density ?? 0;
+        
+        zonesData.push({ 
+          id: doc.id, 
+          name: data.name,
+          current_density,
+          max_capacity: data.max_capacity ?? data.capacity ?? 0,
+          status: data.status ?? "Normal"
+        });
+        
+        totalDensity += current_density;
         if (data.status === "Critical") {
           critical++;
           toast.error(`Critical density in ${data.name}!`, {

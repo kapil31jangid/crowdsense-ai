@@ -122,25 +122,39 @@ async def get_metrics(background_tasks: BackgroundTasks):
 
 @app.post("/api/recommend", tags=["AI Assistance"])
 async def get_recommendation(request: RecommendationRequest, background_tasks: BackgroundTasks):
-    if not llm:
-        return {
-            "recommendation": f"Go to {request.destination} via the main concourse. (AI assistant currently offline)",
-            "status": "Fallback"
-        }
-    
-    background_tasks.add_task(log_api_usage, "/recommend", f"Route: {request.user_location} -> {request.destination}")
-
-    # Fetch live context from Firestore for RAG (Retrieval Augmented Generation)
+    # 1. Fetch live context from Firestore (Needed for both AI and Fallback)
     stadium_context = ""
+    zones_list = []
     try:
         zones = db.collection("zones").stream()
         for zone in zones:
             data = zone.to_dict()
-            stadium_context += f"- {data.get('name')}: {data.get('current_density', 0):.1%} full, status: {data.get('status')}\n"
+            density = data.get("current_density", data.get("density", 0))
+            name = data.get("name", "Unknown Zone")
+            zones_list.append({"name": name, "density": density})
+            stadium_context += f"- {name}: {density:.1%} full, status: {data.get('status')}\n"
     except Exception as e:
-        logger.warning(f"Failed to fetch context for AI: {e}")
-        stadium_context = "Crowd data currently unavailable. Advise based on standard stadium layout."
+        logger.warning(f"Failed to fetch context: {e}")
+        stadium_context = "Crowd data currently unavailable."
 
+    # 2. Handle LLM Offline (Intelligent Fallback)
+    if not llm:
+        best_zone = "Main Concourse"
+        lowest_density = 1.0
+        
+        # Simple algorithm: Find the least crowded zone
+        for z in zones_list:
+            if z["name"] != request.user_location and z["density"] < lowest_density:
+                lowest_density = z["density"]
+                best_zone = z["name"]
+        
+        return {
+            "recommendation": f"Head to {request.destination}. Current data suggests the clearest path is via {best_zone} ({lowest_density:.0%} occupancy). [Smart Fallback Mode]",
+            "status": "Fallback"
+        }
+    background_tasks.add_task(log_api_usage, "/recommend", f"Route: {request.user_location} -> {request.destination}")
+
+    # 3. AI Mode
     prompt = (
         f"You are the CrowdSense AI Stadium Assistant. \n"
         f"Current Stadium State:\n{stadium_context}\n"
@@ -151,12 +165,14 @@ async def get_recommendation(request: RecommendationRequest, background_tasks: B
     )
     
     try:
-        # Use ainvoke for async efficiency
         response = await llm.ainvoke(prompt)
         return {"recommendation": response.content, "status": "Success"}
     except Exception as e:
         logger.error(f"Gemini Invoke Error: {e}")
-        raise HTTPException(status_code=502, detail="AI Service Error")
+        return {
+            "recommendation": f"Proceed to {request.destination}. Watch for signs in the main concourse or consult stadium staff. [Service Error Fallback]",
+            "status": "Error-Fallback"
+        }
 
 # Static File Serving (For Cloud Run host-and-serve)
 static_dir = os.path.join(os.getcwd(), "static")

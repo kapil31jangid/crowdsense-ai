@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 interface Message {
   role: "assistant" | "user";
   content: string;
+  status?: string;
 }
 
 export const ChatInterface: React.FC = () => {
@@ -35,10 +36,18 @@ export const ChatInterface: React.FC = () => {
         body: JSON.stringify({ user_location: "current location", destination: input }),
       });
       const data = await response.json();
-      setMessages((prev) => [...prev, { role: "assistant", content: data.recommendation }]);
+      setMessages((prev) => [...prev, { 
+        role: "assistant", 
+        content: data.recommendation,
+        status: data.status
+      }]);
     } catch (err) {
       console.error("Chat Error:", err);
-      setMessages((prev) => [...prev, { role: "assistant", content: "Sorry, I'm having trouble connecting to my brain right now." }]);
+      setMessages((prev) => [...prev, { 
+        role: "assistant", 
+        content: "Sorry, I'm having trouble connecting to my brain right now.",
+        status: "Error"
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -80,7 +89,14 @@ export const ChatInterface: React.FC = () => {
                         ? "bg-zinc-800 text-zinc-100 rounded-tr-none" 
                         : "bg-zinc-800 border border-zinc-700 text-zinc-200 rounded-tl-none"
                     }`}>
-                      {msg.content}
+                      <div className="flex flex-col gap-1">
+                        {msg.content}
+                        {msg.role === "assistant" && msg.status && msg.status !== "Success" && (
+                          <span className="text-[10px] uppercase font-bold tracking-wider opacity-50">
+                            {msg.status} Mode
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </motion.div>

@@ -90,23 +90,29 @@ export default function Dashboard() {
           <div className="lg:col-span-2 space-y-8">
             <section>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <Activity className="w-6 h-6 text-blue-500" />
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                  <Activity className="w-6 h-6 text-blue-500" aria-hidden="true" />
                   Real-time Density Metrics
-                </h2>
+                </h1>
                 <Badge variant="outline" className="border-zinc-800 text-zinc-400">
                   Live View
                 </Badge>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div 
+                className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                aria-live="polite"
+                aria-atomic="false"
+                role="list"
+              >
                 {zones.map((zone) => (
-                  <CrowdMetric 
-                    key={zone.id} 
-                    name={zone.name} 
-                    density={zone.current_density} 
-                    status={zone.status} 
-                  />
+                  <div key={zone.id} role="listitem">
+                    <CrowdMetric 
+                      name={zone.name} 
+                      density={zone.current_density} 
+                      status={zone.status} 
+                    />
+                  </div>
                 ))}
               </div>
             </section>

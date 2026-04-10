@@ -1,14 +1,21 @@
 import os
+import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
 import firebase_admin
 from firebase_admin import credentials, firestore
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Configure Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("crowdsense-api")
 
 # Firebase Initialization
 firebase_app = None
@@ -20,49 +27,73 @@ try:
         cred = credentials.Certificate(cred_path)
         firebase_app = firebase_admin.initialize_app(cred)
     else:
-        # Attempt to use application default credentials
+        # Attempt to use application default credentials (GCP environment)
         firebase_app = firebase_admin.initialize_app()
     db = firestore.client()
+    logger.info("Firebase initialized successfully")
 except Exception as e:
-    print(f"Warning: Firebase not initialized: {e}")
+    logger.warning(f"Firebase not initialized: {e}")
 
 # Gemini Initialization
 llm = None
 if os.getenv("GOOGLE_API_KEY"):
     try:
+        # Use ainvoke for better concurrency
         llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
+        logger.info("Gemini AI initialized successfully")
     except Exception as e:
-        print(f"Warning: Gemini AI not initialized: {e}")
+        logger.warning(f"Gemini AI not initialized: {e}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialization logic on startup
+    # Startup logic
     yield
+    # Shutdown logic
 
-app = FastAPI(title="CrowdSense AI API", lifespan=lifespan)
+app = FastAPI(
+    title="CrowdSense AI API", 
+    description="Intelligent Stadium Crowd Management API",
+    version="1.0.1",
+    lifespan=lifespan
+)
+
+# Security: Harden CORS policies
+# Restrict to known origins in production
+ALLOWED_ORIGINS = [
+    "https://crowdsense-ai-kjmupfekoq-ew.a.run.app",
+    "http://localhost:3000",
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
+# Schemas with validation
 class RecommendationRequest(BaseModel):
-    user_location: str
-    destination: str
+    user_location: str = Field(..., min_length=2, max_length=100, description="Current location of the attendee")
+    destination: str = Field(..., min_length=2, max_length=100, description="Desired destination")
 
-@app.get("/")
+def log_api_usage(endpoint: str, details: str):
+    """Background task for telemetry logging"""
+    logger.info(f"API Engagement | Endpoint: {endpoint} | Details: {details}")
+
+# API Routes
+@app.get("/api/health", tags=["Health"])
 async def root():
-    return {"status": "online", "message": "CrowdSense AI Backend"}
+    return {"status": "online", "model": "gemini-1.5-flash", "db": "connected" if db else "offline"}
 
-@app.get("/metrics")
-async def get_metrics():
+@app.get("/api/metrics", tags=["Crowd Data"])
+async def get_metrics(background_tasks: BackgroundTasks):
     if not db:
-        return {"error": "Database not connected"}
+        raise HTTPException(status_code=503, detail="Database service unavailable")
     
     try:
+        background_tasks.add_task(log_api_usage, "/metrics", "Snapshot requested")
+        
         zones = db.collection("zones").stream()
         total_density = 0
         zone_count = 0
@@ -85,24 +116,29 @@ async def get_metrics():
             "status": "Critical" if avg_occupancy > 0.8 else "Normal"
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error fetching metrics: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error while processing crowd data")
 
-@app.post("/recommend")
-async def get_recommendation(request: RecommendationRequest):
+@app.post("/api/recommend", tags=["AI Assistance"])
+async def get_recommendation(request: RecommendationRequest, background_tasks: BackgroundTasks):
     if not llm:
         return {
-            "recommendation": f"Go to {request.destination} via the main concourse. (AI assistant currently offline)"
+            "recommendation": f"Go to {request.destination} via the main concourse. (AI assistant currently offline)",
+            "status": "Fallback"
         }
     
-    # Fetch live context from Firestore
+    background_tasks.add_task(log_api_usage, "/recommend", f"Route: {request.user_location} -> {request.destination}")
+
+    # Fetch live context from Firestore for RAG (Retrieval Augmented Generation)
     stadium_context = ""
     try:
         zones = db.collection("zones").stream()
         for zone in zones:
             data = zone.to_dict()
             stadium_context += f"- {data.get('name')}: {data.get('current_density', 0):.1%} full, status: {data.get('status')}\n"
-    except:
-        stadium_context = "Crowd data currently unavailable."
+    except Exception as e:
+        logger.warning(f"Failed to fetch context for AI: {e}")
+        stadium_context = "Crowd data currently unavailable. Advise based on standard stadium layout."
 
     prompt = (
         f"You are the CrowdSense AI Stadium Assistant. \n"
@@ -113,10 +149,25 @@ async def get_recommendation(request: RecommendationRequest):
         "suggest alternatives. Explain your reasoning briefly based on the live data provided."
     )
     
-    response = llm.invoke(prompt)
-    return {"recommendation": response.content}
+    try:
+        # Use ainvoke for async efficiency
+        response = await llm.ainvoke(prompt)
+        return {"recommendation": response.content, "status": "Success"}
+    except Exception as e:
+        logger.error(f"Gemini Invoke Error: {e}")
+        raise HTTPException(status_code=502, detail="AI Service Error")
+
+# Static File Serving (For Cloud Run host-and-serve)
+static_dir = os.path.join(os.getcwd(), "static")
+if os.path.exists(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+    @app.exception_handler(404)
+    async def custom_404_handler(request, __):
+        return FileResponse(os.path.join(static_dir, "index.html"))
+else:
+    logger.warning("Static directory not found. API-only mode enabled.")
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
+    port = int(os.getenv("PORT", 8080)) # Default to 8080 for Cloud Run
     uvicorn.run(app, host="0.0.0.0", port=port)

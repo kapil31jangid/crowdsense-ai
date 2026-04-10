@@ -29,7 +29,7 @@ export const ChatInterface: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recommend`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/recommend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_location: "current location", destination: input }),
@@ -52,7 +52,13 @@ export const ChatInterface: React.FC = () => {
         <CardTitle className="text-lg font-semibold text-white">Smart Assistant</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
-        <ScrollArea className="flex-1 p-6">
+        <ScrollArea 
+          className="flex-1 p-6" 
+          role="log" 
+          aria-live="polite" 
+          aria-relevant="additions"
+          aria-label="Chat messages"
+        >
           <div className="space-y-4">
             <AnimatePresence initial={false}>
               {messages.map((msg, i) => (
@@ -88,16 +94,23 @@ export const ChatInterface: React.FC = () => {
             )}
           </div>
         </ScrollArea>
-        <div className="p-4 border-t border-zinc-800 flex gap-2 bg-zinc-900/40">
+        <div className="p-4 border-t border-zinc-800 flex gap-2 bg-zinc-900/40" role="form" aria-label="Send message">
           <Input
             placeholder="Where do you want to go?"
+            aria-label="Message to AI assistant"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             className="bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600"
           />
-          <Button onClick={sendMessage} disabled={isLoading} size="icon" className="bg-blue-600 hover:bg-blue-700">
-            <Send className="w-4 h-4" />
+          <Button 
+            onClick={sendMessage} 
+            disabled={isLoading} 
+            size="icon" 
+            className="bg-blue-600 hover:bg-blue-700"
+            aria-label="Send message"
+          >
+            <Send className="w-4 h-4" aria-hidden="true" />
           </Button>
         </div>
       </CardContent>

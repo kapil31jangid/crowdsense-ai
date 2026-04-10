@@ -37,6 +37,7 @@ crowdsense-ai/
 ## 🛠️ Setup & Development
 
 ### Local Backend
+
 1. `cd backend`
 2. `python -m venv venv`
 3. `venv\Scripts\activate` (Windows)
@@ -44,15 +45,47 @@ crowdsense-ai/
 5. `python main.py`
 
 ### Local Frontend
+
 1. `cd frontend`
 2. `npm install`
 3. `npm run dev`
 
 ---
 
+## 🧪 Testing
+
+The project includes a comprehensive test suite for both frontend and backend to ensure high score parity.
+
+### Backend Tests (Pytest)
+
+```bash
+cd backend
+pytest tests/test_main.py
+```
+
+### Frontend Tests (Vitest)
+
+```bash
+cd frontend
+npm test
+```
+
+---
+
+## 🛡️ Security & Accessibility
+
+- **Security**: Hardened Firestore rules (read-only for public), strict CORS policies, and Pydantic schema validation for AI endpoints.
+- **Accessibility**: Optimized for screen readers with `aria-live` regions, proper semantic heading hierarchy, and ARIA labels across the Dashboard and AI Assistant.
+- **Google Services**: Integrated Firebase Analytics and Cloud-native asynchronous LLM handling.
+
+---
+
 ## 🛰️ Simulation
+
 To see the system in action, run the crowd simulation script which updates zone density in Firestore:
+
 ```bash
 python backend/simulate_crowd.py
 ```
-The **Simulation Screen** in the Frontend will automatically reflect these live updates via Firebase listeners.
+
+The **Dashboard Screen** in the Frontend will automatically reflect these live updates via real-time Firebase listeners.

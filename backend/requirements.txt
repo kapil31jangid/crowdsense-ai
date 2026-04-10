@@ -7,3 +7,6 @@ langchain
 langchain-google-genai
 python-dotenv
 google-generativeai
+pytest
+pytest-asyncio
+httpx

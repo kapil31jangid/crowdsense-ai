@@ -2,14 +2,15 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/kapil31jangid/crowdsense-ai.git)
 [![System Online](https://img.shields.io/badge/System-Online-brightgreen)](https://crowdsense-ai-kjmupfekoq-ew.a.run.app)
+[![Build Status](https://img.shields.io/badge/Build-Passed-success)](https://console.cloud.google.com/run/detail/europe-west1/crowdsense-ai?project=promptwars-stadium-ai)
 
 CrowdSense AI improves the physical event experience at large-scale sporting venues by providing real-time crowd density monitoring, predictive queue analysis, and intelligent path recommendations.
 
 ---
 
-The system is officially running as a unified full-stack service on Google Cloud Run:
+The system is fully deployed as a unified full-stack service on Google Cloud Run. It handles real-time data sync, AI-driven pathfinding, and high-performance metrics visualization.
 
-**👉 [CrowdSense AI Dashboard](https://crowdsense-ai-kjmupfekoq-ew.a.run.app)**
+**🚀 [CrowdSense AI Live Dashboard](https://crowdsense-ai-kjmupfekoq-ew.a.run.app)**
 
 ---
 

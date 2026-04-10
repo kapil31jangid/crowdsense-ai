@@ -149,7 +149,7 @@ async def get_recommendation(request: RecommendationRequest, background_tasks: B
                 best_zone = z["name"]
         
         return {
-            "recommendation": f"Head to {request.destination}. Current data suggests the clearest path is via {best_zone} ({lowest_density:.0%} occupancy). [Smart Fallback Mode]",
+            "recommendation": f"Head to the destination. Current data suggests the clearest path is via {best_zone} ({lowest_density:.0%} occupancy). [Smart Fallback Mode]",
             "status": "Fallback"
         }
     background_tasks.add_task(log_api_usage, "/recommend", f"Route: {request.user_location} -> {request.destination}")

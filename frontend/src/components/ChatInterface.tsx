@@ -29,14 +29,15 @@ export const ChatInterface: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/recommend`, {
+      const response = await fetch(`/api/recommend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_location: "current location", destination: input }),
       });
       const data = await response.json();
       setMessages((prev) => [...prev, { role: "assistant", content: data.recommendation }]);
-    } catch (error) {
+    } catch (err) {
+      console.error("Chat Error:", err);
       setMessages((prev) => [...prev, { role: "assistant", content: "Sorry, I'm having trouble connecting to my brain right now." }]);
     } finally {
       setIsLoading(false);

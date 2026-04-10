@@ -61,6 +61,7 @@ app = FastAPI(
 # Restrict to known origins in production
 ALLOWED_ORIGINS = [
     "https://crowdsense-ai-kjmupfekoq-ew.a.run.app",
+    "https://crowdsense-ai-671336977433.europe-west1.run.app",
     "http://localhost:3000",
 ]
 
@@ -68,7 +69,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 

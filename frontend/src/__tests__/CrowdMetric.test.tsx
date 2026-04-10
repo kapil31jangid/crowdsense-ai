@@ -29,7 +29,7 @@ describe('CrowdMetric Component', () => {
   it('has appropriate accessibility attributes', () => {
     render(<CrowdMetric name="Test Zone" density={0.5} status="Normal" />);
     
-    const region = screen.getByRole('group');
+    const region = screen.getByRole('region');
     expect(region).toBeDefined();
     expect(region.getAttribute('aria-label')).toContain('Test Zone');
   });

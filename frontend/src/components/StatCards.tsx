@@ -27,6 +27,8 @@ export const StatCards = ({ metrics }: StatCardsProps) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.1 }}
           key={stat.label}
+          role="status"
+          aria-label={`${stat.label}: ${stat.value}`}
           className="bg-zinc-900/40 border border-zinc-800 p-6 rounded-3xl backdrop-blur-sm relative overflow-hidden group"
         >
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">

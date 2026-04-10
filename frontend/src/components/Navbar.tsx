@@ -9,11 +9,22 @@ interface NavbarProps {
 
 export const Navbar = ({ criticalZones }: NavbarProps) => {
   return (
-    <nav className="border-b border-zinc-800 bg-black/50 backdrop-blur-md sticky top-0 z-50">
+    <>
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:bg-blue-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-b-lg focus:left-4"
+      >
+        Skip to main content
+      </a>
+      <nav 
+        role="navigation"
+        aria-label="Main Navigation"
+        className="border-b border-zinc-800 bg-black/50 backdrop-blur-md sticky top-0 z-50"
+      >
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Activity className="w-6 h-6 text-white" />
+            <Activity className="w-6 h-6 text-white" aria-hidden="true" />
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight">CrowdSense <span className="text-blue-500">AI</span></h1>
@@ -40,5 +51,6 @@ export const Navbar = ({ criticalZones }: NavbarProps) => {
         </button>
       </div>
     </nav>
+    </>
   );
 };
